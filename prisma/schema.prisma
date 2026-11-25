@@ -1,0 +1,28 @@
+generator client {
+  provider = "prisma-client-js"
+}
+
+datasource db {
+  provider = "sqlite"
+  url      = env("DATABASE_URL")
+}
+
+// a player is just a name bound to a device cookie
+model User {
+  id        String        @id @default(cuid())
+  name      String
+  createdAt DateTime      @default(now())
+  used      UsedContent[]
+}
+
+// every question/word a host has seen, so it never comes back to them
+model UsedContent {
+  id        String   @id @default(cuid())
+  userId    String
+  user      User     @relation(fields: [userId], references: [id])
+  kind      String
+  key       String
+  createdAt DateTime @default(now())
+
+  @@unique([userId, kind, key])
+}
