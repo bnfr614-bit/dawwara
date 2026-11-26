@@ -3,27 +3,24 @@ import { active, addScore } from '../types';
 import { LETTERS, LETTER_CATEGORIES } from '../content';
 import { fresh } from '../fresh';
 import { sameAnswer, startsWithLetter } from '../matcher';
-import { deadline, finish, fx, scoreboard } from './util';
+import { finish, fx, scoreboard, skip, stage, timing } from './util';
 
-const SECONDS = 90;
-const ROUNDS = 6;
+const ROUNDS = 5;
+const T = { intro: 4, fill: 90, review: 40, scored: 9 };
 const S = (r: Room) => r.state;
 
 async function newRound(room: Room) {
   const s = S(room);
   if (s.round >= ROUNDS) return finish(room);
   const [letter] = await fresh({ hostId: room.hostId, kind: 'letter', pool: LETTERS, n: 1, key: (l) => l });
-  Object.assign(s, { stage: 'fill', round: s.round + 1, letter, sheets: {}, stopper: null, rejects: {}, results: null });
+  Object.assign(s, { round: s.round + 1, letter, sheets: {}, stopper: null, rejects: {}, results: null, doneReview: [] });
   fx(room, 'round');
-  deadline(room, SECONDS, () => toReview(room));
+  stage(room, 'intro', T.intro, () => { fx(room, 'reveal'); stage(room, 'fill', T.fill, () => toReview(room)); });
 }
 
 function toReview(room: Room) {
-  const s = S(room);
-  room.clearTimer();
-  s.deadline = null;
-  s.stage = 'review';
   fx(room, 'buzz');
+  stage(room, 'review', T.review, () => score(room));
 }
 
 const rejectKey = (pid: string, cat: string) => `${pid}|${cat}`;
@@ -59,8 +56,8 @@ function score(room: Room) {
     (results[pid] as any).__total = total;
   }
   s.results = results;
-  s.stage = 'scored';
   fx(room, 'ding');
+  stage(room, 'scored', T.scored, () => newRound(room));
 }
 
 export const letters: GameEngine = {
@@ -69,7 +66,7 @@ export const letters: GameEngine = {
     await newRound(room);
   },
 
-  async act(room, pid, a, isHost) {
+  async act(room, pid, a) {
     const s = S(room);
     switch (a.type) {
       case 'save': {
@@ -87,7 +84,7 @@ export const letters: GameEngine = {
         if (wrong.length) return `هذي ما تبدأ بحرف ${s.letter}: ${wrong.join('، ')}`;
         s.stopper = pid;
         fx(room, 'stop', { pid });
-        toReview(room);
+        return skip(room, () => toReview(room));
         return;
       }
       case 'reject': {
@@ -97,22 +94,16 @@ export const letters: GameEngine = {
         s.rejects[k] = list.includes(pid) ? list.filter((x) => x !== pid) : [...list, pid];
         return;
       }
-      case 'score': {
-        if (isHost && s.stage === 'review') score(room);
-        return;
-      }
-      case 'next': {
-        if (isHost && s.stage === 'scored') await newRound(room);
-        return;
-      }
-      case 'end': {
-        if (isHost) finish(room);
+      case 'doneReview': {
+        if (s.stage !== 'review') return;
+        s.doneReview = [...new Set([...s.doneReview, pid])];
+        if (active(room).every((p) => s.doneReview.includes(p.id))) return skip(room, () => score(room));
         return;
       }
     }
   },
 
-  view(room, viewer, isHost) {
+  view(room, viewer) {
     const s = S(room);
     const reviewing = s.stage !== 'fill';
     const rows = reviewing
@@ -127,8 +118,7 @@ export const letters: GameEngine = {
         }))
       : [];
     return {
-      stage: s.stage, round: s.round, rounds: ROUNDS, letter: s.letter, categories: s.categories,
-      deadline: s.deadline, seconds: SECONDS, fx: s.fx, isHost,
+      ...timing(s), round: s.round, rounds: ROUNDS, letter: s.stage === 'intro' ? null : s.letter, categories: s.categories, doneReview: s.doneReview,
       mySheet: viewer ? s.sheets[viewer] || null : null,
       filled: Object.entries(s.sheets).filter(([, sh]: any) => LETTER_CATEGORIES.filter((c) => (sh[c] || '').trim()).length).map(([id]) => id),
       stopper: s.stopper,

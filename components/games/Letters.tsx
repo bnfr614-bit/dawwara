@@ -1,7 +1,8 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Fanjal from '../Fanjal';
-import { Countdown, Leaderboard, nameOf } from '../ui';
+import Miko from '../Miko';
+import { Buzzer } from '../ui';
+import { Leaderboard, StageStrip, nameOf } from '../ui';
 import type { GP } from './types';
 import Icon from '../Icon';
 
@@ -9,7 +10,7 @@ const firstLetter = (s: string) => s.trim().replace(/^ال(?=..)/, '').replace(/
 // mirrors the server rule: "ال" is ignored, all alef forms count as one
 const startsWith = (word: string, letter: string) => firstLetter(word) === letter.replace(/[إأآٱ]/g, 'ا');
 
-export default function Letters({ room, view: v, you, act, mode, isHost }: GP) {
+export default function Letters({ room, view: v, you, act, mode }: GP) {
   const board = mode === 'board';
   const [sheet, setSheet] = useState<Record<string, string>>({});
   const saveT = useRef<any>(null);
@@ -26,16 +27,17 @@ export default function Letters({ room, view: v, you, act, mode, isHost }: GP) {
 
   return (
     <div className="stack" style={{ gap: 14 }}>
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <span className="chip">الجولة {v.round} من {v.rounds}</span>
-        {v.stage === 'fill' && <Countdown deadline={v.deadline} tick={board} />}
-      </div>
+      <StageStrip v={v} board={board} left={<span className="chip gold">الجولة {v.round} من {v.rounds}</span>} label={v.stage === 'fill' ? `${v.filled.length} بدأوا` : undefined} />
 
-      <div className="letter-medal" aria-label={`الحرف ${v.letter}`}>{v.letter}</div>
+      {v.stage === 'intro' ? (
+        <div className="host-bubble" style={{ justifyContent: 'center' }}><Miko size={board ? 130 : 80} talking wave /><div className="bubble">جهزوا أنفسكم… الحرف بيطلع الحين!</div></div>
+      ) : (
+        <div className="letter-medal" aria-label={`الحرف ${v.letter}`}>{v.letter}</div>
+      )}
 
       {v.stage === 'fill' && (
         <>
-          <div className="host-bubble"><Fanjal size={board ? 110 : 56} talking /><div className="bubble grow">كل الخانات تبدأ بحرف «{v.letter}». أول واحد يخلص يقول ستوب! ({v.filled.length} بدأوا)</div></div>
+          <div className="host-bubble"><Miko size={board ? 110 : 56} talking /><div className="bubble grow">كل الخانات تبدأ بحرف «{v.letter}». أول واحد يخلص يقول ستوب! ({v.filled.length} بدأوا)</div></div>
           {!board && (
             <form className="card sheet" onSubmit={async (e) => { e.preventDefault(); clearTimeout(saveT.current); await act({ type: 'save', sheet }); act({ type: 'stop' }); }}>
               {v.categories.map((c: string) => {
@@ -50,15 +52,15 @@ export default function Letters({ room, view: v, you, act, mode, isHost }: GP) {
                   </label>
                 );
               })}
-              <button className="btn red lg block">✋ ستوب!</button>
+              <div style={{ paddingTop: 8 }}><Buzzer label="ستوب!" onPress={async () => { clearTimeout(saveT.current); await act({ type: 'save', sheet }); act({ type: 'stop' }); }} /></div>
             </form>
           )}
         </>
       )}
 
-      {v.stage !== 'fill' && (
+      {(v.stage === 'review' || v.stage === 'scored') && (
         <>
-          <div className="host-bubble"><Fanjal size={board ? 110 : 56} mood={v.stage === 'review' ? 'think' : 'wink'} talking />
+          <div className="host-bubble"><Miko size={board ? 110 : 56} mood={v.stage === 'review' ? 'think' : 'wink'} talking />
             <div className="bubble grow">
               {v.stopper ? `${nameOf(room, v.stopper)} قال ستوب! ` : 'خلص الوقت! '}
               {v.stage === 'review' ? 'راجعوا الإجابات. أي إجابة غلط اضغطوا عليها ترفضونها.' : 'هذي النقاط.'}
@@ -71,7 +73,7 @@ export default function Letters({ room, view: v, you, act, mode, isHost }: GP) {
                 <div key={r.pid} className="rc">
                   <div className="row" style={{ justifyContent: 'space-between' }}>
                     <b>{nameOf(room, r.pid)}{r.pid === you ? ' (أنت)' : ''}{r.pid === v.stopper ? ' · قال ستوب' : ''}</b>
-                    {r.total !== null && <b className="num" style={{ color: 'var(--saffron)' }}>{r.total}</b>}
+                    {r.total !== null && <b className="num" style={{ color: 'var(--gold)' }}>{r.total}</b>}
                   </div>
                   {r.cells.map((c: any) => {
                     const canReject = v.stage === 'review' && r.pid !== you && c.text;
@@ -123,9 +125,10 @@ export default function Letters({ room, view: v, you, act, mode, isHost }: GP) {
             </table>
           </div>}
           {v.stage === 'scored' && <Leaderboard rows={v.leaderboard} you={board ? null : you} />}
-          {isHost && !board && v.stage === 'review' && <button className="btn gold" type="button" onClick={() => act({ type: 'score' })}>احسب النقاط</button>}
-          {isHost && !board && v.stage === 'scored' && (
-            <div className="row"><button className="btn go grow" type="button" onClick={() => act({ type: 'next' })}>{v.round >= v.rounds ? 'النتيجة النهائية' : 'حرف جديد'}</button><button className="btn ghost" type="button" onClick={() => act({ type: 'end' })}>إنهاء</button></div>
+          {!board && v.stage === 'review' && (
+            <button className="btn gold block" type="button" disabled={v.doneReview?.includes(you)} onClick={() => act({ type: 'doneReview' })}>
+              {v.doneReview?.includes(you) ? `خلصت المراجعة (${v.doneReview.length}/${room.players.length})` : 'خلصت المراجعة'}
+            </button>
           )}
         </>
       )}

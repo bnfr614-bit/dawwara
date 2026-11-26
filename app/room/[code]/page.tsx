@@ -14,11 +14,10 @@ import Icon from '@/components/Icon';
 function RoomClient({ code }: { code: string }) {
   const { room, view, you, error, connected, kicked, act } = useRoom(code);
   const [toast, setToast] = useState<string | null>(null);
-  const [confirmLeave, setConfirmLeave] = useState(false);
   const isHost = !!room && you === room.hostId;
   const doAct = async (a: any) => { unlockAudio(); const e = await act(a); if (e) setToast(e); return e; };
 
-  if (kicked) return <div className="wrap section"><div className="error">المضيف طلّعك من الغرفة.</div></div>;
+  if (kicked) return <div className="wrap section"><div className="error">صاحب الغرفة طلّعك منها.</div></div>;
   if (error) return (
     <div className="wrap section stack" style={{ maxWidth: 520 }}>
       <div className="error">{error}</div>
@@ -36,17 +35,7 @@ function RoomClient({ code }: { code: string }) {
           {!connected && <span className="chip" style={{ color: 'var(--bad)' }}><span className="dots">نعيد الاتصال</span></span>}
         </div>
         {isHost && room.phase !== 'lobby' && (
-          <div className="row" style={{ gap: 6 }}>
-            <a className="btn ghost icon" href={`/room/${room.code}/board`} target="_blank" rel="noopener" aria-label="افتح شاشة العرض" title="شاشة العرض"><Icon name="tv" size={20} /></a>
-            {confirmLeave ? (
-              <>
-                <button className="btn red sm" type="button" onClick={() => { setConfirmLeave(false); doAct({ type: 'toLobby' }); }}>أنهِ اللعبة</button>
-                <button className="btn ghost sm" type="button" onClick={() => setConfirmLeave(false)}>كمّل</button>
-              </>
-            ) : (
-              <button className="btn ghost icon" type="button" onClick={() => setConfirmLeave(true)} aria-label="رجوع لغرفة الانتظار" title="رجوع للانتظار"><Icon name="back" size={20} /></button>
-            )}
-          </div>
+          <a className="btn ghost icon" href={`/room/${room.code}/board`} target="_blank" rel="noopener" aria-label="افتح شاشة العرض" title="شاشة العرض"><Icon name="tv" size={20} /></a>
         )}
       </div>
 

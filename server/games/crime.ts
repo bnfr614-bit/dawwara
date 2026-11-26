@@ -1,7 +1,7 @@
 import type { GameEngine, Room } from '../types';
 import { active, addScore } from '../types';
 import { CRIME_CLUES, CRIME_MEANS, pickOne, shuffle } from '../content';
-import { fx, finish, scoreboard } from './util';
+import { finish, fx, scoreboard, skip, stage, timing } from './util';
 
 const S = (r: Room) => r.state;
 const HAND = 4;
@@ -38,89 +38,91 @@ function caseFile(means: string, clue: string) {
   ];
 }
 
+const ROUNDS = 2;
+const T = { pick: 30, investigate: 180, hunt: 30, over: 12 };
+
+function deal(room: Room) {
+  const s = S(room);
+  if (s.round >= ROUNDS) return finish(room);
+  const players = active(room);
+  const order = shuffle(players.map((p) => p.id));
+  const means = shuffle(CRIME_MEANS), clues = shuffle(CRIME_CLUES);
+  const hands: Record<string, { means: string[]; clues: string[] }> = {};
+  players.forEach((p, i) => {
+    const m = (i * HAND) % means.length, c = (i * HAND) % clues.length;
+    hands[p.id] = { means: means.slice(m, m + HAND), clues: clues.slice(c, c + HAND) };
+  });
+  Object.assign(s, {
+    round: s.round + 1, hands,
+    killer: order[0], witness: players.length >= 5 ? order[1] : null,
+    lead: order[players.length >= 5 ? 2 : 1],
+    chosen: null, file: null, accusation: null, correct: null, hunted: null, detectivesWin: null,
+  });
+  fx(room, 'round');
+  stage(room, 'killerPick', T.pick, () => {
+    const h = s.hands[s.killer];
+    pick(room, pickOne(h.means), pickOne(h.clues));
+  });
+}
+
+function pick(room: Room, means: string, clue: string) {
+  const s = S(room);
+  s.chosen = { means, clue };
+  s.file = caseFile(means, clue);
+  fx(room, 'bell');
+  stage(room, 'investigate', T.investigate, () => { s.accusation = null; conclude(room, false); });
+}
+
 function hunt(room: Room) {
   const s = S(room);
-  s.stage = s.witness ? 'hunt' : 'over';
-  if (!s.witness) conclude(room, true);
+  if (!s.witness) return conclude(room, true);
+  stage(room, 'hunt', T.hunt, () => conclude(room, true));
 }
 
 function conclude(room: Room, detectivesWin: boolean) {
   const s = S(room);
-  s.stage = 'over';
   s.detectivesWin = detectivesWin;
   for (const p of room.players) {
     if (p.id === s.killer) { if (!detectivesWin) addScore(room, p.id, 3); }
     else if (detectivesWin) addScore(room, p.id, 2);
   }
   fx(room, detectivesWin ? 'steal' : 'stealFail');
+  stage(room, 'over', T.over, () => deal(room));
 }
 
 export const crime: GameEngine = {
   start(room) {
     room.state = { round: 0, fx: { n: 0 } };
-    return this.act(room, room.hostId, { type: 'deal' }, true) as any;
+    deal(room);
   },
 
-  act(room, pid, a, isHost) {
+  act(room, pid, a) {
     const s = S(room);
-    switch (a.type) {
-      case 'deal': {
-        if (!isHost || (s.round && s.stage !== 'over')) return;
-        const players = active(room);
-        const order = shuffle(players.map((p) => p.id));
-        const means = shuffle(CRIME_MEANS), clues = shuffle(CRIME_CLUES);
-        const hands: Record<string, { means: string[]; clues: string[] }> = {};
-        players.forEach((p, i) => {
-          hands[p.id] = { means: means.slice((i * HAND) % means.length, (i * HAND) % means.length + HAND), clues: clues.slice((i * HAND) % clues.length, (i * HAND) % clues.length + HAND) };
-        });
-        Object.assign(s, {
-          round: s.round + 1, stage: 'killerPick', hands,
-          killer: order[0], witness: players.length >= 5 ? order[1] : null,
-          lead: order[players.length >= 5 ? 2 : 1],
-          chosen: null, file: null, accusation: null, correct: null, hunted: null, detectivesWin: null,
-        });
-        fx(room, 'round');
-        return;
-      }
-      case 'pick': {
-        if (s.stage !== 'killerPick' || pid !== s.killer) return;
-        const h = s.hands[pid];
-        if (!h.means.includes(a.means) || !h.clues.includes(a.clue)) return 'اختار سلاح ودليل من أوراقك.';
-        s.chosen = { means: a.means, clue: a.clue };
-        s.file = caseFile(a.means, a.clue);
-        s.stage = 'investigate';
-        fx(room, 'bell');
-        return;
-      }
-      case 'accuse': {
-        if (s.stage !== 'investigate' || !(pid === s.lead || isHost)) return;
-        const h = s.hands[a.suspect];
-        if (!h || !h.means.includes(a.means) || !h.clues.includes(a.clue)) return 'الاتهام لازم يكون: لاعب + سلاح من أوراقه + دليل من أوراقه.';
-        s.accusation = { suspect: a.suspect, means: a.means, clue: a.clue };
-        s.correct = a.suspect === s.killer && a.means === s.chosen.means && a.clue === s.chosen.clue;
-        if (s.correct) { fx(room, 'ding'); hunt(room); }
-        else conclude(room, false);
-        return;
-      }
-      case 'hunt': {
-        if (s.stage !== 'hunt' || pid !== s.killer || a.target === s.killer) return;
-        s.hunted = a.target;
-        conclude(room, a.target !== s.witness);
-        return;
-      }
-      case 'end': {
-        if (isHost) finish(room);
-        return;
-      }
+    if (a.type === 'pick' && s.stage === 'killerPick' && pid === s.killer) {
+      const h = s.hands[pid];
+      if (!h.means.includes(a.means) || !h.clues.includes(a.clue)) return 'اختار سلاح ودليل من أوراقك.';
+      return skip(room, () => pick(room, a.means, a.clue));
+    }
+    if (a.type === 'accuse' && s.stage === 'investigate' && pid === s.lead) {
+      const h = s.hands[a.suspect];
+      if (!h || !h.means.includes(a.means) || !h.clues.includes(a.clue)) return 'الاتهام لازم يكون: لاعب + سلاح من أوراقه + دليل من أوراقه.';
+      s.accusation = { suspect: a.suspect, means: a.means, clue: a.clue };
+      s.correct = a.suspect === s.killer && a.means === s.chosen.means && a.clue === s.chosen.clue;
+      if (s.correct) { fx(room, 'ding'); return skip(room, () => hunt(room)); }
+      return skip(room, () => conclude(room, false));
+    }
+    if (a.type === 'hunt' && s.stage === 'hunt' && pid === s.killer && a.target !== s.killer) {
+      s.hunted = a.target;
+      return skip(room, () => conclude(room, a.target !== s.witness));
     }
   },
 
-  view(room, viewer, isHost) {
+  view(room, viewer) {
     const s = S(room);
     const over = s.stage === 'over';
     const role = !viewer ? null : viewer === s.killer ? 'killer' : viewer === s.witness ? 'witness' : 'detective';
     return {
-      stage: s.stage, round: s.round, fx: s.fx, isHost,
+      ...timing(s), round: s.round, rounds: ROUNDS,
       role, lead: s.lead, witnessExists: !!s.witness,
       hands: s.hands,
       // the witness knows who did it, the killer knows their own pick

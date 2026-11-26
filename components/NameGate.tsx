@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Fanjal from './Fanjal';
+import Miko from './Miko';
 import { useMe } from './useMe';
 import Loading from './Loading';
 
@@ -24,7 +24,7 @@ export default function NameGate({ children, title = 'وش اسمك؟' }: { chil
           setBusy(false);
         }}
       >
-        <div style={{ display: 'grid', placeItems: 'center' }}><Fanjal size={110} mood="wink" /></div>
+        <div style={{ display: 'grid', placeItems: 'center' }}><Miko size={110} mood="wink" /></div>
         <h2>{title}</h2>
         <p className="muted">هذا الاسم اللي يشوفه ربعك في الغرفة. ما نحتاج إيميل ولا كلمة مرور.</p>
         <input id="player-name" className="input center" value={name} onChange={(e) => setName(e.target.value)} placeholder="مثلاً: أبو فهد" maxLength={16} autoFocus />

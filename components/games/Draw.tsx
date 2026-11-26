@@ -1,7 +1,7 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Fanjal from '../Fanjal';
-import { Countdown, nameOf, teamName } from '../ui';
+import Miko from '../Miko';
+import { StageStrip, nameOf, teamName } from '../ui';
 import { getSocket } from '@/lib/useRoom';
 import type { GP } from './types';
 
@@ -114,26 +114,23 @@ function Canvas({ strokes, canDraw, resetKey }: { strokes: Stroke[]; canDraw: bo
   );
 }
 
-export default function Draw({ room, view: v, you, act, mode, isHost }: GP) {
+export default function Draw({ room, view: v, you, act, mode }: GP) {
   const board = mode === 'board';
+  const [guess, setGuess] = useState('');
   const me = room.players.find((p) => p.id === you);
   const team = room.players.filter((p) => p.team === v.turn);
   const resetKey = `${v.stage}-${v.drawer}-${v.turn}`;
+  const big = board ? 110 : 60;
+  const opp = v.turn === 'a' ? 'b' : 'a';
 
   return (
     <div className="stack" style={{ gap: 14 }}>
-      <div className="row" style={{ justifyContent: 'space-between' }}>
-        <span className="chip pill-a">الأزرق {v.teamScores.a}</span>
-        <span className="chip">أول فريق يوصل {v.target}</span>
-        <span className="chip pill-b">الأحمر {v.teamScores.b}</span>
-      </div>
+      <StageStrip v={v} board={board} left={<><span className="chip pill-a">الأزرق <b className="num">{v.teamScores.a}</b></span><span className="chip pill-b">الأحمر <b className="num">{v.teamScores.b}</b></span><span className="chip">أول فريق يوصل {v.target}</span></>} />
 
       {v.stage === 'choose' && (
         <>
-          <div className="host-bubble"><Fanjal size={board ? 120 : 64} talking /><div className="bubble grow">دور {teamName(v.turn)}! الكابتن {nameOf(room, v.captain)} يختار الرسام.</div></div>
-          {v.canChoose && !board && (
-            <div className="pick">{team.map((p) => <button key={p.id} type="button" onClick={() => act({ type: 'choose', drawer: p.id })}>{p.name}{p.id === you ? ' (أنا)' : ''}</button>)}</div>
-          )}
+          <div className="host-bubble"><Miko size={big} talking wave /><div className="bubble grow">دور {teamName(v.turn)}! الكابتن {nameOf(room, v.captain)} يختار الرسام، وإذا ما اختار أختار أنا.</div></div>
+          {v.canChoose && !board && <div className="pick">{team.map((p) => <button key={p.id} type="button" onClick={() => act({ type: 'choose', drawer: p.id })}>{p.name}{p.id === you ? ' (أنا)' : ''}</button>)}</div>}
         </>
       )}
 
@@ -141,43 +138,38 @@ export default function Draw({ room, view: v, you, act, mode, isHost }: GP) {
         <>
           <div className="row" style={{ justifyContent: 'space-between' }}>
             <span>الرسام: <b>{nameOf(room, v.drawer)}</b> ({teamName(v.turn)})</span>
-            {v.stage === 'draw' ? <Countdown deadline={v.deadline} tick={board} /> : <span className="chip" style={{ color: 'var(--bad)' }}>خلص الوقت!</span>}
+            {v.stage === 'steal' && <span className="chip" style={{ color: 'var(--bad)' }}>خلص الوقت! فرصة لـ{teamName(opp)}</span>}
           </div>
           {v.word ? (
-            <div className="secret" style={{ padding: 12 }}><div className="label">{v.amDrawer ? 'ارسم هذي الكلمة' : 'الكلمة (للحكم)'}</div><div className="big">{v.word}</div></div>
+            <div className="secret" style={{ padding: 12 }}><div className="label">ارسم هذي الكلمة</div><div className="big">{v.word}</div></div>
           ) : (
-            <div className="center muted">{'_ '.repeat(v.wordLength)} ({v.wordLength} حروف)</div>
+            <div className="center display" style={{ fontSize: board ? '2.4rem' : '1.6rem', letterSpacing: '.3em' }}>{'_ '.repeat(v.wordLength)}</div>
           )}
           <Canvas strokes={v.strokes} canDraw={!board && v.amDrawer && v.stage === 'draw'} resetKey={resetKey} />
-          {v.stage === 'draw' && !board && (v.amDrawer || isHost) && (
-            <div className="row">
-              <button className="btn go grow" type="button" onClick={() => act({ type: 'got' })}>✓ فريقي خمّنها</button>
-              <button className="btn ghost" type="button" onClick={() => act({ type: 'giveUp' })}>استسلم</button>
-            </div>
+          {v.canGuess && !board && (
+            <form className="row" onSubmit={(e) => { e.preventDefault(); const t = guess.trim(); if (t) { setGuess(''); act({ type: 'guess', text: t }); } }}>
+              <input id="draw-guess" className="input grow" value={guess} onChange={(e) => setGuess(e.target.value)} placeholder={v.stage === 'steal' ? 'محاولة وحدة: وش الكلمة؟' : 'خمّن الكلمة…'} maxLength={40} autoComplete="off" />
+              <button className="btn gold" disabled={!guess.trim()}>خمّن</button>
+            </form>
           )}
-          {v.stage === 'draw' && !board && !v.amDrawer && me?.team === v.turn && <p className="center">خمّنوا بصوت عالي!</p>}
-          {v.stage === 'steal' && (
-            <>
-              <div className="host-bubble"><Fanjal size={board ? 100 : 56} mood="shock" /><div className="bubble grow">{teamName(v.turn === 'a' ? 'b' : 'a')}، عندكم محاولة وحدة!</div></div>
-              {isHost && !board && (
-                <div className="row"><button className="btn go grow" type="button" onClick={() => act({ type: 'steal', ok: true })}>✓ خمّنوها</button><button className="btn red grow" type="button" onClick={() => act({ type: 'steal', ok: false })}>✕ غلط</button></div>
-              )}
-            </>
+          {v.guesses?.length > 0 && (
+            <div className="feed">{v.guesses.map((g: any, i: number) => (
+              <span key={i} className="chip" style={g.ok ? { background: 'var(--ok)', color: '#032012' } : undefined}>{nameOf(room, g.pid)}: {g.text}</span>
+            ))}</div>
           )}
+          {v.stage === 'draw' && !board && !v.amDrawer && me?.team !== v.turn && <p className="center muted">فريق الخصم يرسم. استعدوا لو خلص وقتهم!</p>}
         </>
       )}
 
       {v.stage === 'result' && (
         <>
-          <div className="host-bubble"><Fanjal size={board ? 120 : 64} mood="wink" talking />
-            <div className="bubble grow">الكلمة كانت <b style={{ color: 'var(--saffron)' }}>{v.result.word}</b>. {v.result.team ? `نقطة لـ${teamName(v.result.team)}${v.result.how === 'steal' ? ' بالسرقة!' : '!'}` : 'محد خمنها.'}</div>
+          <div className="host-bubble"><Miko size={big} mood={v.result.team ? 'wink' : 'sad'} talking />
+            <div className="bubble grow">الكلمة كانت <b>{v.result.word}</b>. {v.result.team ? `نقطة لـ${teamName(v.result.team)}${v.result.how === 'steal' ? ' بالسرقة!' : '!'}` : 'محد خمنها.'}</div>
           </div>
           <Canvas strokes={v.strokes} canDraw={false} resetKey={resetKey} />
-          {isHost && !board && (
-            <div className="row"><button className="btn go grow" type="button" onClick={() => act({ type: 'next' })}>الدور الجاي</button><button className="btn ghost" type="button" onClick={() => act({ type: 'end' })}>إنهاء</button></div>
-          )}
         </>
       )}
     </div>
   );
 }
+

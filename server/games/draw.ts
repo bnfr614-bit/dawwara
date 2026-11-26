@@ -1,37 +1,53 @@
 import type { GameEngine, Room, Team } from '../types';
 import { teamOf } from '../types';
-import { DRAW_WORDS } from '../content';
+import { DRAW_WORDS, pickOne } from '../content';
 import { fresh, generators } from '../fresh';
-import { deadline, finish, fx } from './util';
+import { sameWord } from '../matcher';
+import { finish, fx, skip, stage, timing } from './util';
 
-const SECONDS = 75;
 const TARGET = 5;
+const MAX_TURNS = 12;
+const T = { choose: 15, draw: 75, steal: 20, result: 7 };
 const S = (r: Room) => r.state;
 const other = (t: Team): Team => (t === 'a' ? 'b' : 'a');
+const teamOfPid = (room: Room, pid: string) => room.players.find((p) => p.id === pid)?.team as Team;
 
 function goChoose(room: Room, team: Team) {
   const s = S(room);
-  room.clearTimer();
-  Object.assign(s, { stage: 'choose', turn: team, drawer: null, word: null, strokes: [], deadline: null, result: null });
+  if (s.turns >= MAX_TURNS) return end(room);
+  s.turns++;
+  Object.assign(s, { turn: team, drawer: null, word: null, strokes: [], result: null, guesses: [] });
+  fx(room, 'vs');
+  stage(room, 'choose', T.choose, () => startDraw(room, pickOne(teamOf(room, team)).id));
 }
 
-function score(room: Room, team: Team, how: string) {
+async function startDraw(room: Room, drawer: string) {
   const s = S(room);
-  room.clearTimer();
-  s.deadline = null;
-  s.teamScores[team]++;
+  const [word] = await fresh({ hostId: room.hostId, kind: 'draw', pool: DRAW_WORDS, n: 1, key: (w) => w, generate: generators.words('أشياء تنرسم بسهولة') });
+  Object.assign(s, { drawer, word, strokes: [] });
+  fx(room, 'reveal');
+  stage(room, 'draw', T.draw, () => { fx(room, 'stealOpen'); stage(room, 'steal', T.steal, () => result(room, null, 'none')); });
+}
+
+function result(room: Room, team: Team | null, how: string) {
+  const s = S(room);
+  if (team) { s.teamScores[team]++; fx(room, how === 'steal' ? 'steal' : 'ding'); } else fx(room, 'stealFail');
   s.result = { team, how, word: s.word };
-  s.stage = 'result';
-  fx(room, 'ding');
-  if (s.teamScores[team] >= TARGET) {
-    room.players.forEach((p) => (p.score = s.teamScores[p.team as Team]));
-    finish(room);
-  }
+  stage(room, 'result', T.result, () => {
+    if (team && s.teamScores[team] >= TARGET) return end(room);
+    goChoose(room, other(s.turn));
+  });
+}
+
+function end(room: Room) {
+  const s = S(room);
+  room.players.forEach((p) => (p.score = s.teamScores[p.team as Team]));
+  finish(room);
 }
 
 export const draw: GameEngine & { acceptStroke(room: Room, pid: string, stroke: any): boolean } = {
   start(room) {
-    room.state = { teamScores: { a: 0, b: 0 }, fx: { n: 0 }, target: TARGET, seconds: SECONDS };
+    room.state = { teamScores: { a: 0, b: 0 }, fx: { n: 0 }, turns: 0, guesses: [] };
     goChoose(room, 'a');
   },
 
@@ -47,63 +63,50 @@ export const draw: GameEngine & { acceptStroke(room: Room, pid: string, stroke: 
     return true;
   },
 
-  async act(room, pid, a, isHost) {
+  act(room, pid, a) {
     const s = S(room);
-    const team = room.players.find((p) => p.id === pid)?.team as Team;
-    const captain = teamOf(room, s.turn)[0]?.id;
-    switch (a.type) {
-      case 'choose': {
-        if (s.stage !== 'choose' || !(isHost || pid === captain)) return;
-        const drawer = teamOf(room, s.turn).find((p) => p.id === a.drawer);
-        if (!drawer) return 'اختار رسام من نفس الفريق.';
-        const [word] = await fresh({ hostId: room.hostId, kind: 'draw', pool: DRAW_WORDS, n: 1, key: (w) => w, generate: generators.words('أشياء تنرسم بسهولة') });
-        Object.assign(s, { stage: 'draw', drawer: drawer.id, word, strokes: [] });
-        fx(room, 'round');
-        deadline(room, SECONDS, () => { s.stage = 'steal'; fx(room, 'buzz'); });
+    const team = teamOfPid(room, pid);
+    if (a.type === 'choose' && s.stage === 'choose') {
+      if (pid !== teamOf(room, s.turn)[0]?.id) return 'الكابتن بس يختار الرسام.';
+      if (!teamOf(room, s.turn).some((p) => p.id === a.drawer)) return 'اختار رسام من نفس الفريق.';
+      return skip(room, () => startDraw(room, a.drawer));
+    }
+    if (a.type === 'guess') {
+      const text = String(a.text || '').trim().slice(0, 40);
+      if (!text) return;
+      if (s.stage === 'draw') {
+        if (team !== s.turn || pid === s.drawer) return 'التخمين لفريق الرسام بس.';
+        const ok = sameWord(text, s.word);
+        s.guesses = [...s.guesses.slice(-11), { pid, text: ok ? '✓' : text, ok }];
+        if (ok) return skip(room, () => result(room, s.turn, 'team'));
+        fx(room, 'buzz');
         return;
       }
-      case 'got': {
-        if (s.stage === 'draw' && (isHost || pid === s.drawer)) score(room, s.turn, 'team');
-        return;
-      }
-      case 'giveUp': {
-        if (s.stage === 'draw' && (isHost || pid === s.drawer)) { room.clearTimer(); s.deadline = null; s.stage = 'steal'; fx(room, 'buzz'); }
-        return;
-      }
-      case 'steal': {
-        if (!isHost || s.stage !== 'steal') return;
-        if (a.ok) score(room, other(s.turn), 'steal');
-        else { s.result = { team: null, how: 'none', word: s.word }; s.stage = 'result'; fx(room, 'stealFail'); }
-        return;
-      }
-      case 'next': {
-        if ((isHost || team === other(s.turn)) && s.stage === 'result') goChoose(room, other(s.turn));
-        return;
-      }
-      case 'end': {
-        if (!isHost) return;
-        room.players.forEach((p) => (p.score = s.teamScores[p.team as Team]));
-        finish(room);
-        return;
+      if (s.stage === 'steal') {
+        if (team !== other(s.turn)) return 'محاولة السرقة لفريق الخصم.';
+        const ok = sameWord(text, s.word);
+        s.guesses = [...s.guesses.slice(-11), { pid, text, ok }];
+        return skip(room, () => result(room, ok ? other(s.turn) : null, ok ? 'steal' : 'none'));
       }
     }
   },
 
-  view(room, viewer, isHost) {
+  view(room, viewer) {
     const s = S(room);
     const me = room.players.find((p) => p.id === viewer);
     const captain = teamOf(room, s.turn)[0]?.id;
-    const seesWord = viewer !== null && (viewer === s.drawer || (isHost && me?.team !== s.turn));
+    const showWord = viewer === s.drawer || s.stage === 'result' || room.phase === 'end';
     return {
-      stage: s.stage, turn: s.turn, teamScores: s.teamScores, target: TARGET, fx: s.fx,
-      drawer: s.drawer, captain, deadline: s.deadline, seconds: SECONDS,
-      word: seesWord || s.stage === 'result' || room.phase === 'end' ? s.word : null,
+      ...timing(s), turn: s.turn, teamScores: s.teamScores, target: TARGET,
+      drawer: s.drawer, captain,
+      word: showWord ? s.word : null,
       wordLength: s.word ? s.word.replace(/\s/g, '').length : 0,
       strokes: s.strokes,
       amDrawer: viewer === s.drawer,
-      canChoose: s.stage === 'choose' && (isHost || viewer === captain),
+      canChoose: s.stage === 'choose' && viewer === captain,
+      canGuess: !!me && ((s.stage === 'draw' && me.team === s.turn && me.id !== s.drawer) || (s.stage === 'steal' && me.team === other(s.turn))),
+      guesses: s.guesses.map((g: any) => ({ ...g, text: g.ok && s.stage === 'draw' ? '✓' : g.text })),
       result: s.result,
-      isHost,
     };
   },
 };

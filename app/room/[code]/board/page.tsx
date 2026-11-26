@@ -36,7 +36,7 @@ export default function Board({ params }: { params: { code: string } }) {
       {room.phase === 'playing' && view && <GameView game={room.game} room={room} view={view} you={null} act={act} mode="board" isHost={false} />}
       {room.phase === 'end' && <EndScreen room={room} view={view} board />}
       <FxLayer fx={view?.fx} sound={armed} />
-      <div className="sadu" aria-hidden="true" style={{ marginTop: 'auto' }} />
+      <div className="bulbs" aria-hidden="true" style={{ marginTop: "auto" }} />
     </main>
   );
 }

@@ -3,11 +3,12 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { GAMES } from '@/lib/catalog';
-import Fanjal from './Fanjal';
+import Miko from './Miko';
 import Scene from './Scene';
 import Icon from './Icon';
 
-const DEMO = { q: 'شي ما يبدأ صباحك بدونه؟', a: [['القهوة', 38], ['الجوال', 22], ['الفطور', 14], ['الصلاة', 10], ['الشاي', 8], ['الدش', 5]] as [string, number][] };
+const ORDER = ['feud', 'mafia', 'letters', 'who-wrote', 'intruder', 'odd-question', 'draw', 'crime'];
+const DEMO ={ q: 'شي ما يبدأ صباحك بدونه؟', a: [['القهوة', 38], ['الجوال', 22], ['الفطور', 14], ['الصلاة', 10], ['الشاي', 8], ['الدش', 5]] as [string, number][] };
 
 function LivePreview() {
   const [open, setOpen] = useState<number[]>([]);
@@ -23,7 +24,7 @@ function LivePreview() {
   return (
     <div className="stack preview" aria-label="معاينة لعبة وش قالوا">
       <div className="host-bubble">
-        <Fanjal size={80} talking />
+        <Miko size={96} talking wave />
         <div className="bubble">سألنا ١٠٠ شخص: {DEMO.q}</div>
       </div>
       <div className="feud-board">
@@ -35,6 +36,10 @@ function LivePreview() {
             </div>
           </div>
         ))}
+      </div>
+      <div className="row" style={{ justifyContent: 'center', gap: 18, marginTop: 8 }}>
+        <div className="strikes"><i className="on">✕</i><i>✕</i><i>✕</i></div>
+        <span className="buzzer sm" aria-hidden="true">جرس</span>
       </div>
     </div>
   );
@@ -87,8 +92,8 @@ export default function Landing() {
     <main>
       <section className="wrap hero">
         <div className="stack" style={{ gap: 18 }}>
-          <h1>ليلة الشلة تبدأ <em>بكود من ٤ حروف</em></h1>
-          <p>المضيف يفتح غرفة، والكل يدخل من جواله بدون تحميل، واللوحة على الشاشة الكبيرة. وفنجال يمسك الجلسة ويحكم بينكم.</p>
+          <h1>سألنا ١٠٠ شخص… <em>وجاء دوركم!</em></h1>
+          <p>ثمان ألعاب بأجواء برامج المسابقات. افتح غرفة، والكل يدخل من جواله بكود من ٤ حروف، واللوحة على الشاشة الكبيرة. ميكو هو المقدّم والحكم، واللعبة تمشي لحالها.</p>
           <div className="hero-actions">
             <a className="btn go lg" href="#games">افتح غرفة</a>
             <form className="join-box" onSubmit={go}>
@@ -103,28 +108,28 @@ export default function Landing() {
 
       <section className="wrap section" id="games">
         <h2>الألعاب</h2>
-        <p className="lead">سبع ألعاب، من ٢ لين ١٤ لاعب. اضغط «كيف تلعب؟» تنقلب البطاقة وتشوف القواعد.</p>
-        <div className="games">{GAMES.map((g, i) => <GameCard key={g.id} g={g} featured={i === 0} />)}</div>
+        <p className="lead">ثمان ألعاب، من ٢ لين ١٦ لاعب. اضغط «كيف تلعب؟» تنقلب البطاقة وتشوف القواعد.</p>
+        <div className="games">{ORDER.map((id) => GAMES.find((g) => g.id === id)!).map((g) => <GameCard key={g.id} g={g} />)}</div>
       </section>
 
       <section className="wrap section">
         <h2>كيف تبدأون</h2>
         <div className="how3">
-          <div className="card"><h3>١. المضيف يختار لعبة</h3><p className="muted">يفتح الغرفة ويطلع له كود من ٤ حروف. يفتح «شاشة العرض» على التلفزيون أو اللابتوب.</p></div>
-          <div className="card"><h3>٢. الشلة تدخل بالكود</h3><p className="muted">كل واحد يفتح الموقع من جواله، يكتب اسمه والكود، وتوصله بطاقاته وأسئلته على شاشته.</p></div>
-          <div className="card"><h3>٣. فنجال يمسك الجلسة</h3><p className="muted">يعرض الأسئلة، يحكم الإجابات حتى لو فيها أخطاء إملائية، ويحسب النقاط لين آخر جولة.</p></div>
+          <div className="card"><h3>١. افتح غرفة</h3><p className="muted">اختر لعبة ويطلع لك كود من ٤ حروف وQR. افتح «شاشة العرض» على التلفزيون أو اللابتوب.</p></div>
+          <div className="card"><h3>٢. الشلة تدخل وتضغط «جاهز»</h3><p className="muted">أول ما يكتمل العدد يبدأ العد التنازلي، وتبدأ اللعبة لحالها. محد يتحكم بالجلسة.</p></div>
+          <div className="card"><h3>٣. ميكو يدير البرنامج</h3><p className="muted">يعلن المواجهات، يعطي كل واحد وقته، يحكم الإجابات حتى لو فيها أخطاء إملائية، ويحسب النقاط.</p></div>
         </div>
       </section>
 
       <section className="wrap section faq">
         <h2>أسئلة تتكرر</h2>
         <details><summary>هل نحتاج نحمّل تطبيق؟</summary><p>لا. كل شي من المتصفح، على الجوال أو اللابتوب.</p></details>
-        <details><summary>هل الأسئلة تتكرر؟</summary><p>لا. كل سؤال وكلمة تطلع للمضيف تنحفظ، وما ترجع له مرة ثانية. وإذا خلصت الأسئلة الجاهزة يكتب فنجال أسئلة جديدة.</p></details>
-        <details><summary>كتبت الإجابة بإملاء غلط، تنحسب؟</summary><p>إيه. «مويه» و«موية» و«ماء» كلها وحدة، والأخطاء البسيطة تنمشي. وإذا الجهاز ما فهمها، المضيف يقدر يكشف الإجابة بنفسه.</p></details>
+        <details><summary>هل الأسئلة تتكرر؟</summary><p>لا. كل سؤال وكلمة تطلع للمضيف تنحفظ، وما ترجع له مرة ثانية. وإذا خلصت الأسئلة الجاهزة يكتب ميكو أسئلة جديدة.</p></details>
+        <details><summary>كتبت الإجابة بإملاء غلط، تنحسب؟</summary><p>إيه. «مويه» و«موية» و«ماء» كلها وحدة، والأخطاء البسيطة تنمشي. وإذا كانت بكلمة ثانية بنفس المعنى، ميكو يفهمها.</p></details>
         <details><summary>لازم شاشة كبيرة؟</summary><p>أحسن، بس مو شرط. كل لاعب يشوف اللي يحتاجه على جواله.</p></details>
-        <details><summary>كم شخص يقدر يلعب؟</summary><p>على حسب اللعبة، من ٢ لين ١٤ لاعب.</p></details>
+        <details><summary>كم شخص يقدر يلعب؟</summary><p>على حسب اللعبة، من ٢ لين ١٦ لاعب. المافيا من ٥ لاعبين.</p></details>
       </section>
-      <div className="sadu" aria-hidden="true" />
+      <div className="bulbs" aria-hidden="true" />
       <footer className="wrap section center muted small">دوّارة · ألعاب للشلة</footer>
     </main>
   );

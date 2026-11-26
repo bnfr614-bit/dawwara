@@ -5,8 +5,19 @@ import { io, type Socket } from 'socket.io-client';
 export type RoomInfo = {
   code: string; game: string; gameName: string; teams: boolean; min: number; max: number;
   hostId: string; phase: 'lobby' | 'playing' | 'end';
+  lobby: { deadline: number | null; ready: string[]; error?: string };
+  endAt: number | null;
   players: { id: string; name: string; connected: boolean; score: number; team?: 'a' | 'b' }[];
 };
+
+// server deadlines are in server time; shift them onto this device's clock
+function localize(d: any) {
+  const skew = Date.now() - (d.room?.now ?? Date.now());
+  const fix = (t: number | null | undefined) => (t ? t + skew : t);
+  if (d.room) { d.room.lobby = { ...d.room.lobby, deadline: fix(d.room.lobby?.deadline) }; d.room.endAt = fix(d.room.endAt); }
+  if (d.view) d.view = { ...d.view, deadline: fix(d.view.deadline) };
+  return d;
+}
 
 let shared: Socket | null = null;
 export function getSocket() {
@@ -45,7 +56,7 @@ export function useRoom(code: string, opts: { board?: boolean; enabled?: boolean
         else { setError(null); setNeedLogin(false); }
       });
     };
-    const onRoom = (d: any) => { setRoom(d.room); setView(d.view); setYou(d.you); };
+    const onRoom = (raw: any) => { const d = localize(raw); setRoom(d.room); setView(d.view); setYou(d.you); };
     const onConnect = () => { setConnected(true); join(); };
     const onDisconnect = () => setConnected(false);
     const onKicked = () => setKicked(true);

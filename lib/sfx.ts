@@ -63,6 +63,11 @@ export const sfx: Record<string, () => void> = {
   award: () => { [659, 784, 988].forEach((f, i) => tone(f, 0.2, { type: 'sine', at: i * 0.07, vol: 0.4 })); },
   win: () => { [523, 659, 784, 1046, 784, 1046, 1318].forEach((f, i) => tone(f, 0.28, { type: 'triangle', at: i * 0.12, vol: 0.4 })); },
   tick: () => tone(900, 0.03, { type: 'sine', vol: 0.15 }),
+  count: () => tone(660, 0.12, { type: 'triangle', vol: 0.35 }),
+  vs: () => { tone(200, 0.35, { type: 'sine', vol: 0.4, to: 600 }); tone(880, 0.25, { type: 'triangle', at: 0.3, vol: 0.35 }); },
+  reveal: () => { [523, 784, 1046].forEach((f, i) => tone(f, 0.18, { type: 'triangle', at: i * 0.06, vol: 0.35 })); },
+  stealOpen: () => { [392, 523, 659].forEach((f, i) => tone(f, 0.22, { type: 'square', at: i * 0.1, vol: 0.14 })); },
+  night: () => { tone(196, 0.9, { type: 'sine', vol: 0.35 }); tone(233, 0.9, { type: 'sine', at: 0.05, vol: 0.25 }); },
 };
 
 export function play(type: string) { sfx[type]?.(); }

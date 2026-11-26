@@ -1,38 +1,41 @@
 'use client';
-import { useState } from 'react';
-import Fanjal from '../Fanjal';
-import { nameOf, teamName } from '../ui';
+import { useEffect, useRef, useState } from 'react';
+import Miko from '../Miko';
+import { Avatar, Buzzer, StageStrip, nameOf, teamName, useSecondsLeft } from '../ui';
+import { play } from '@/lib/sfx';
 import type { GP } from './types';
+
+const otherTeam = (t: string) => (t === 'a' ? 'b' : 'a');
 
 function hostLine(v: any, room: GP['room']) {
   const n = (id: string) => nameOf(room, id);
-  if (v.busy && v.last?.pending) return `«${v.last.text}»… خلوني أشوف اللوحة.`;
-  if (v.stage === 'roundEnd') return v.roundWinner ? `النقاط لـ${teamName(v.roundWinner)}! +${v.pot}` : 'انتهت الجولة.';
+  if (v.stage === 'intro') return `المواجهة! ${n(v.face.a)} ضد ${n(v.face.b)}. جهزوا أصابعكم على الجرس!`;
+  if (v.stage === 'countdown') return 'استعدوا…';
+  if (v.busy && v.last?.pending) return `«${v.last.text}»… خلوني أشوف اللوحة!`;
+  if (v.stage === 'reveal') return v.roundWinner ? `النقاط لـ${teamName(v.roundWinner)}! +${v.pot}` : 'انتهت الجولة.';
+  if (v.last?.none) return v.stage === 'play' ? `محد ضغط! اللوحة لـ${teamName(v.control)}.` : 'خلص الوقت!';
   if (v.last && !v.last.pending) {
-    if (v.stage === 'steal' && !v.last.hit) return `ثلاث أكسات! ${teamName(v.control === 'a' ? 'b' : 'a')}، تشاوروا وعندكم إجابة وحدة تسرقون فيها كل شي!`;
+    if (v.stage === 'steal') return `ثلاث أكسات! ${teamName(otherTeam(v.control))}، تشاوروا: عندكم إجابة وحدة تسرقون فيها كل النقاط!`;
+    if (v.last.timeout) return `${n(v.last.pid)} ما لحق! اكس.`;
     if (v.last.hit) return v.last.idx === 0 ? `«${v.last.text}» الإجابة الأولى! أسطورة يا ${n(v.last.pid)}!` : `«${v.last.text}» موجودة! كفو يا ${n(v.last.pid)}.`;
     return `«${v.last.text}»؟ ما لها وجود على اللوحة!`;
   }
-  if (v.stage === 'faceoff') return v.face.buzz ? `${n(v.face.buzz)} ضغط أول! جاوب.` : `مواجهة: ${n(v.face.a)} ضد ${n(v.face.b)}. أسرع واحد على الجرس!`;
+  if (v.stage === 'buzz') return `${n(v.face.a)} و${n(v.face.b)}، أسرع واحد على الجرس!`;
+  if (v.stage === 'face') return `${n(v.answerer)} ضغط! جاوب قبل يخلص الوقت.`;
   if (v.stage === 'play') return `${teamName(v.control)} ماسك اللوحة. الدور على ${n(v.answerer)}.`;
-  if (v.stage === 'steal') return `فرصة السرقة لـ${teamName(v.control === 'a' ? 'b' : 'a')}!`;
+  if (v.stage === 'steal') return `فرصة السرقة لـ${teamName(otherTeam(v.control))}!`;
   return 'سألنا ١٠٠ شخص…';
 }
 
-function Board({ v, hostPeek, onTile }: { v: any; hostPeek?: boolean; onTile?: (i: number) => void }) {
+export function FeudBoard({ v }: { v: any }) {
   const n = v.tiles.length;
   const half = Math.ceil(n / 2);
   return (
     <div className={`feud-board${n <= 4 ? ' one' : ''}`}>
       {v.tiles.map((t: any, i: number) => (
-        <div key={i} className={`tile${t.open ? ' open' : ''}${onTile && !t.open ? ' host-click' : ''}`} style={{ order: n <= 4 ? i : i < half ? i * 2 : (i - half) * 2 + 1 }}>
+        <div key={i} className={`tile${t.open ? ' open' : ''}`} style={{ order: n <= 4 ? i : i < half ? i * 2 : (i - half) * 2 + 1 }}>
           <div className="tile-in">
-            <div className="f" onClick={() => onTile && !t.open && onTile(i)} role={onTile ? 'button' : undefined} tabIndex={onTile && !t.open ? 0 : undefined}
-              onKeyDown={(e) => { if (onTile && !t.open && (e.key === 'Enter' || e.key === ' ')) onTile(i); }}
-              aria-label={onTile ? `اكشف الإجابة ${i + 1}${t.text ? `: ${t.text}` : ''}` : undefined}>
-              <span className="n">{t.n}</span>
-              {hostPeek && t.text && !t.open && <span className="peek"><span>{t.text}</span><span>{t.pts}</span></span>}
-            </div>
+            <div className="f"><span className="n">{t.n}</span></div>
             <div className="b"><span className="t">{t.text}</span><span className="p">{t.pts}</span></div>
           </div>
         </div>
@@ -45,15 +48,34 @@ function Strikes({ n }: { n: number }) {
   return <div className="strikes" aria-label={`${n} من 3 أكسات`}>{[1, 2, 3].map((i) => <i key={i} className={i <= n ? 'on' : ''}>✕</i>)}</div>;
 }
 
+function VS({ v, room }: { v: any; room: GP['room'] }) {
+  const a = room.players.find((p) => p.id === v.face.a);
+  const b = room.players.find((p) => p.id === v.face.b);
+  return (
+    <div className="vs" aria-label={`${a?.name} ضد ${b?.name}`}>
+      <div className="side" style={{ color: 'var(--team-a)' }}><Avatar name={a?.name || '؟'} team="a" /><b>{a?.name}</b><span className="chip pill-a">الأزرق</span></div>
+      <div className="x">ضد</div>
+      <div className="side b" style={{ color: 'var(--team-b)' }}><Avatar name={b?.name || '؟'} team="b" /><b>{b?.name}</b><span className="chip pill-b">الأحمر</span></div>
+    </div>
+  );
+}
+
+function Count({ v, sound }: { v: any; sound: boolean }) {
+  const left = useSecondsLeft(v.deadline);
+  const prev = useRef(-1);
+  useEffect(() => { if (sound && left !== prev.current && left > 0) play('count'); prev.current = left; }, [left, sound]);
+  return <div className="count-big" key={left}>{left || '!'}</div>;
+}
+
 function Podium({ t, v, room }: { t: 'a' | 'b'; v: any; room: GP['room'] }) {
-  const on = (v.stage === 'steal' ? (v.control === 'a' ? 'b' : 'a') : v.control) === t;
+  const on = (v.stage === 'steal' ? otherTeam(v.control) : v.control) === t;
   return (
     <div className={`podium ${t}${on ? ' on' : ''}`}>
       <div className="pn">{t === 'a' ? 'الأزرق' : 'الأحمر'}</div>
       <div className="ps">{v.teamScores[t]}</div>
       <div className="stack" style={{ gap: 4, width: '100%' }}>
         {room.players.filter((p) => p.team === t).map((p) => (
-          <div key={p.id} className={`player team-${t}`} style={p.id === v.answerer || p.id === v.face?.buzz ? { outline: '2px solid var(--saffron)' } : undefined}>
+          <div key={p.id} className={`player team-${t}${p.id === v.answerer || p.id === v.face?.buzz ? ' on' : ''}`}>
             <span className="av">{p.name[0]}</span><span className="nm">{p.name}</span>
           </div>
         ))}
@@ -62,28 +84,38 @@ function Podium({ t, v, room }: { t: 'a' | 'b'; v: any; room: GP['room'] }) {
   );
 }
 
-export default function Feud({ room, view: v, you, act, mode, isHost }: GP) {
+export default function Feud({ room, view: v, you, act, mode }: GP) {
   const [text, setText] = useState('');
-  const [peek, setPeek] = useState(false);
+  const board = mode === 'board';
   const line = hostLine(v, room);
+  const pre = v.stage === 'intro' || v.stage === 'countdown';
+  const me = room.players.find((p) => p.id === you);
 
-  if (mode === 'board') {
+  const center = (
+    <>
+      {v.stage === 'intro' && <VS v={v} room={room} />}
+      {v.stage === 'countdown' && <Count v={v} sound={board} />}
+      {!pre && <div className="q-banner">{v.question}</div>}
+      {!pre && <FeudBoard v={v} />}
+    </>
+  );
+
+  const strip = (
+    <StageStrip v={pre ? { ...v, deadline: null } : v} board={board}
+      left={<><span className="chip gold">الجولة {v.round} من {v.rounds}</span>{v.mult > 1 && <span className="chip">النقاط ×{v.mult}</span>}</>}
+      label={!pre && <>نقاط الجولة <b className="num">{v.pot}</b></>} />
+  );
+
+  if (board) {
     return (
       <div className="stack" style={{ gap: 18 }}>
-        <div className="tv-head">
-          <span className="chip">الجولة {v.round} من {v.rounds}{v.mult > 1 ? ` · النقاط ×${v.mult}` : ''}</span>
-          <span className="chip" dir="ltr">#{room.code}</span>
-        </div>
-        <div className="tv-q">{v.question}</div>
+        {strip}
         <div className="tv-stage">
           <Podium t="a" v={v} room={room} />
-          <div className="tv-center stack" style={{ gap: 14 }}>
-            <div className="host-bubble"><Fanjal size={96} talking={!!v.busy} mood={v.last && !v.last.pending && !v.last.hit ? 'shock' : 'happy'} /><div className="bubble grow">{line}</div></div>
-            <Board v={v} />
-            <div className="row" style={{ justifyContent: 'center', gap: 24 }}>
-              <Strikes n={v.strikes} />
-              <div className="stack center" style={{ gap: 0 }}><span className="label">نقاط الجولة</span><b className="display num" style={{ fontSize: '2rem', color: 'var(--saffron)' }}>{v.pot}</b></div>
-            </div>
+          <div className="tv-center stack" style={{ gap: 16 }}>
+            <div className="host-bubble"><Miko size={100} talking={!!v.busy || pre} mood={v.last && !v.last.pending && !v.last.hit && !v.last.none ? 'shock' : 'happy'} wave={v.stage === 'intro'} /><div className="bubble grow">{line}</div></div>
+            {center}
+            {!pre && <Strikes n={v.strikes} />}
           </div>
           <Podium t="b" v={v} room={room} />
         </div>
@@ -97,27 +129,24 @@ export default function Feud({ room, view: v, you, act, mode, isHost }: GP) {
     setText('');
     await act({ type: 'answer', text: t });
   };
-  const me = room.players.find((p) => p.id === you);
 
   return (
     <div className="stack" style={{ gap: 14 }}>
-      <div className="card stack center">
-        <div className="label">الجولة {v.round} من {v.rounds}{v.mult > 1 ? ` · ×${v.mult}` : ''}</div>
-        <h2>{v.question}</h2>
-        <div className="row" style={{ justifyContent: 'center' }}>
-          <span className="chip pill-a">الأزرق {v.teamScores.a}</span>
-          <span className="chip">الجولة: <b className="num">{v.pot}</b></span>
-          <span className="chip pill-b">الأحمر {v.teamScores.b}</span>
-        </div>
+      {strip}
+      <div className="row" style={{ justifyContent: 'center' }}>
+        <span className="chip pill-a">الأزرق <b className="num">{v.teamScores.a}</b></span>
+        <span className="chip pill-b">الأحمر <b className="num">{v.teamScores.b}</b></span>
+        {me?.team && <span className="chip">فريقك: {teamName(me.team)}</span>}
       </div>
+      <div className="host-bubble"><Miko size={64} talking={!!v.busy || pre} /><div className="bubble grow">{line}</div></div>
 
-      <div className="host-bubble"><Fanjal size={64} talking={!!v.busy} /><div className="bubble grow">{line}</div></div>
+      {center}
 
-      {v.canBuzz && <button className="buzzer" type="button" onClick={() => act({ type: 'buzz' })}>اضغط!</button>}
+      {v.canBuzz && <Buzzer onPress={() => act({ type: 'buzz' })} />}
 
       {v.canAnswer && (
         <form className="card stack" onSubmit={(e) => { e.preventDefault(); send(); }}>
-          <label className="label" htmlFor="feud-answer">{v.stage === 'steal' ? 'إجابة السرقة (وحدة بس، تشاوروا!)' : 'جاوب الحين'}</label>
+          <label className="label" htmlFor="feud-answer">{v.stage === 'steal' ? 'إجابة السرقة: وحدة بس، تشاوروا!' : 'دورك! اكتب إجابتك'}</label>
           <div className="row">
             <input id="feud-answer" className="input grow" value={text} onChange={(e) => setText(e.target.value)} placeholder="اكتب إجابتك…" maxLength={60} autoFocus autoComplete="off" />
             <button className="btn gold" disabled={!text.trim()}>أرسل</button>
@@ -125,32 +154,12 @@ export default function Feud({ room, view: v, you, act, mode, isHost }: GP) {
         </form>
       )}
 
-      {!v.canBuzz && !v.canAnswer && !isHost && me && v.stage !== 'roundEnd' && (
-        <p className="center muted">{v.stage === 'faceoff' ? 'تابع المواجهة على الشاشة.' : me.team === v.control || (v.stage === 'steal' && me.team !== v.control) ? 'فريقك يلعب. ساعدهم بصوت عالي!' : 'فريق الخصم يلعب الحين.'}</p>
+      {!pre && !v.canBuzz && !v.canAnswer && v.stage !== 'reveal' && me && (
+        <p className="center muted">
+          {v.stage === 'buzz' ? 'تابع المواجهة على الجرس.' : me.team === (v.stage === 'steal' ? otherTeam(v.control) : v.control) ? 'فريقك يلعب. ساعدهم!' : 'فريق الخصم يلعب الحين.'}
+        </p>
       )}
-
-      {isHost ? (
-        <div className="card stack">
-          <div className="row" style={{ justifyContent: 'space-between' }}>
-            <b>لوحة الحكم</b>
-            <button className="btn ghost sm" type="button" aria-pressed={peek} onClick={() => setPeek((x) => !x)}>
-              {peek ? '🙈 اخفِ الإجابات' : '👁 اعرض الإجابات'}
-            </button>
-          </div>
-          <p className="muted small">
-            {peek ? 'لا توريها أحد! اضغط أي إجابة تكشفها بنفسك لو الجهاز ما فهم اللاعب.' : 'الإجابات مخفية عشان لو أنت لاعب بعد. اضغط رقم الإجابة تكشفها، أو اعرضها لو أنت حكم بس.'}
-          </p>
-          <Board v={v} hostPeek={peek} onTile={(i) => act({ type: 'reveal', idx: i })} />
-          <Strikes n={v.strikes} />
-          <div className="row" style={{ justifyContent: 'center' }}>
-            {v.stage !== 'roundEnd' && <button className="btn red" type="button" onClick={() => act({ type: 'strike' })} disabled={v.busy || (v.stage === 'faceoff' && !v.face.turn)}>✕ اكس</button>}
-            {v.stage === 'roundEnd' && <button className="btn ghost" type="button" onClick={() => act({ type: 'revealAll' })}>اكشف الباقي</button>}
-            {v.stage === 'roundEnd' && <button className="btn go" type="button" onClick={() => act({ type: 'next' })}>{v.round >= v.rounds ? 'النتيجة النهائية' : 'الجولة الجاية'}</button>}
-          </div>
-        </div>
-      ) : (
-        <Board v={v} />
-      )}
+      {!pre && <Strikes n={v.strikes} />}
     </div>
   );
 }

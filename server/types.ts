@@ -17,6 +17,10 @@ export type Room = {
   players: Player[];
   phase: 'lobby' | 'playing' | 'end';
   state: any;
+  /** lobby auto-start: countdown runs once enough players are in */
+  lobby: { deadline: number | null; ready: string[]; error?: string };
+  /** after a game ends the room returns to the lobby by itself */
+  endAt: number | null;
   createdAt: number;
   update: () => void;
   timer: (ms: number, fn: () => void) => void;

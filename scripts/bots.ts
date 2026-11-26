@@ -14,6 +14,7 @@ const NAMES = ['سعود', 'ناصر', 'خالد', 'تركي', 'ماجد', 'بن
     s.on('connect', () => s.emit('join', { code }, (res: any) => {
       console.log(NAMES[i], res);
       s.emit('act', { type: 'team', team: i % 2 ? 'a' : 'b' }, () => {});
+      s.emit('act', { type: 'ready' }, () => {});
     }));
   }
   setTimeout(() => process.exit(0), Number(process.env.STAY_MS || 15 * 60 * 1000));
