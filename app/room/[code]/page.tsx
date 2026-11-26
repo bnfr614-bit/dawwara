@@ -10,10 +10,12 @@ import { useRoom } from '@/lib/useRoom';
 import { unlockAudio } from '@/lib/sfx';
 import Loading from '@/components/Loading';
 import Icon from '@/components/Icon';
+import { useGameTheme } from '@/lib/useGameTheme';
 
 function RoomClient({ code }: { code: string }) {
   const { room, view, you, error, connected, kicked, act } = useRoom(code);
   const [toast, setToast] = useState<string | null>(null);
+  useGameTheme(room?.game);
   const isHost = !!room && you === room.hostId;
   const doAct = async (a: any) => { unlockAudio(); const e = await act(a); if (e) setToast(e); return e; };
 

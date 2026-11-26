@@ -7,11 +7,13 @@ import { useRoom } from '@/lib/useRoom';
 import { unlockAudio } from '@/lib/sfx';
 import EndScreen from '@/components/EndScreen';
 import Loading from '@/components/Loading';
+import { useGameTheme } from '@/lib/useGameTheme';
 
 export default function Board({ params }: { params: { code: string } }) {
   const code = params.code.toUpperCase();
   const { room, view, error, act } = useRoom(code, { board: true });
   const [armed, setArmed] = useState(false);
+  useGameTheme(room?.game);
 
   // the board is read from across the room: scale every rem with the screen width
   useEffect(() => {

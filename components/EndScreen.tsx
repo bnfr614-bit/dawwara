@@ -1,5 +1,5 @@
 'use client';
-import Miko from './Miko';
+import Fanjal from './Fanjal';
 import { Leaderboard, TimerRing } from './ui';
 
 export default function EndScreen({ room, you, act, view, board = false }: any) {
@@ -13,7 +13,7 @@ export default function EndScreen({ room, you, act, view, board = false }: any) 
       : rows[0] ? `${rows[0].name} بطل الجلسة!` : '';
   return (
     <div className="stack center" style={{ alignItems: 'center', gap: 18, paddingBlock: 20 }}>
-      <Miko size={board ? 190 : 130} mood="wink" talking wave />
+      <Fanjal size={board ? 190 : 130} mood="wink" talking wave />
       <h1 style={{ fontSize: board ? '5rem' : '2.8rem', background: 'linear-gradient(180deg,#fff3b8,var(--gold) 55%,var(--gold-2))', WebkitBackgroundClip: 'text', backgroundClip: 'text', color: 'transparent' }}>{top}</h1>
       {teamScores && !mafiaWin && (
         <div className="row" style={{ justifyContent: 'center' }}>

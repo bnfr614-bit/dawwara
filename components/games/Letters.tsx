@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Miko from '../Miko';
+import Fanjal from '../Fanjal';
 import { Buzzer } from '../ui';
 import { Leaderboard, StageStrip, nameOf } from '../ui';
 import type { GP } from './types';
@@ -30,14 +30,14 @@ export default function Letters({ room, view: v, you, act, mode }: GP) {
       <StageStrip v={v} board={board} left={<span className="chip gold">الجولة {v.round} من {v.rounds}</span>} label={v.stage === 'fill' ? `${v.filled.length} بدأوا` : undefined} />
 
       {v.stage === 'intro' ? (
-        <div className="host-bubble" style={{ justifyContent: 'center' }}><Miko size={board ? 130 : 80} talking wave /><div className="bubble">جهزوا أنفسكم… الحرف بيطلع الحين!</div></div>
+        <div className="host-bubble" style={{ justifyContent: 'center' }}><Fanjal size={board ? 130 : 80} talking wave /><div className="bubble">جهزوا أنفسكم… الحرف بيطلع الحين!</div></div>
       ) : (
         <div className="letter-medal" aria-label={`الحرف ${v.letter}`}>{v.letter}</div>
       )}
 
       {v.stage === 'fill' && (
         <>
-          <div className="host-bubble"><Miko size={board ? 110 : 56} talking /><div className="bubble grow">كل الخانات تبدأ بحرف «{v.letter}». أول واحد يخلص يقول ستوب! ({v.filled.length} بدأوا)</div></div>
+          <div className="host-bubble"><Fanjal size={board ? 110 : 56} talking /><div className="bubble grow">كل الخانات تبدأ بحرف «{v.letter}». أول واحد يخلص يقول ستوب! ({v.filled.length} بدأوا)</div></div>
           {!board && (
             <form className="card sheet" onSubmit={async (e) => { e.preventDefault(); clearTimeout(saveT.current); await act({ type: 'save', sheet }); act({ type: 'stop' }); }}>
               {v.categories.map((c: string) => {
@@ -60,7 +60,7 @@ export default function Letters({ room, view: v, you, act, mode }: GP) {
 
       {(v.stage === 'review' || v.stage === 'scored') && (
         <>
-          <div className="host-bubble"><Miko size={board ? 110 : 56} mood={v.stage === 'review' ? 'think' : 'wink'} talking />
+          <div className="host-bubble"><Fanjal size={board ? 110 : 56} mood={v.stage === 'review' ? 'think' : 'wink'} talking />
             <div className="bubble grow">
               {v.stopper ? `${nameOf(room, v.stopper)} قال ستوب! ` : 'خلص الوقت! '}
               {v.stage === 'review' ? 'راجعوا الإجابات. أي إجابة غلط اضغطوا عليها ترفضونها.' : 'هذي النقاط.'}

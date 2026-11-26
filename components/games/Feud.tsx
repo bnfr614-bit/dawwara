@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Miko from '../Miko';
+import Fanjal from '../Fanjal';
 import { Avatar, Buzzer, StageStrip, nameOf, teamName, useSecondsLeft } from '../ui';
 import { play } from '@/lib/sfx';
 import type { GP } from './types';
@@ -113,7 +113,7 @@ export default function Feud({ room, view: v, you, act, mode }: GP) {
         <div className="tv-stage">
           <Podium t="a" v={v} room={room} />
           <div className="tv-center stack" style={{ gap: 16 }}>
-            <div className="host-bubble"><Miko size={100} talking={!!v.busy || pre} mood={v.last && !v.last.pending && !v.last.hit && !v.last.none ? 'shock' : 'happy'} wave={v.stage === 'intro'} /><div className="bubble grow">{line}</div></div>
+            <div className="host-bubble"><Fanjal size={100} talking={!!v.busy || pre} mood={v.last && !v.last.pending && !v.last.hit && !v.last.none ? 'shock' : 'happy'} wave={v.stage === 'intro'} /><div className="bubble grow">{line}</div></div>
             {center}
             {!pre && <Strikes n={v.strikes} />}
           </div>
@@ -138,7 +138,7 @@ export default function Feud({ room, view: v, you, act, mode }: GP) {
         <span className="chip pill-b">الأحمر <b className="num">{v.teamScores.b}</b></span>
         {me?.team && <span className="chip">فريقك: {teamName(me.team)}</span>}
       </div>
-      <div className="host-bubble"><Miko size={64} talking={!!v.busy || pre} /><div className="bubble grow">{line}</div></div>
+      <div className="host-bubble"><Fanjal size={64} talking={!!v.busy || pre} /><div className="bubble grow">{line}</div></div>
 
       {center}
 

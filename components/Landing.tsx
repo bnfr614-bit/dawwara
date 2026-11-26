@@ -3,7 +3,7 @@ import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { GAMES } from '@/lib/catalog';
-import Miko from './Miko';
+import Fanjal from './Fanjal';
 import Scene from './Scene';
 import Icon from './Icon';
 
@@ -24,7 +24,7 @@ function LivePreview() {
   return (
     <div className="stack preview" aria-label="معاينة لعبة وش قالوا">
       <div className="host-bubble">
-        <Miko size={96} talking wave />
+        <Fanjal size={96} talking wave />
         <div className="bubble">سألنا ١٠٠ شخص: {DEMO.q}</div>
       </div>
       <div className="feud-board">
@@ -48,7 +48,7 @@ function LivePreview() {
 function GameCard({ g, featured }: { g: (typeof GAMES)[number]; featured?: boolean }) {
   const [flipped, setFlipped] = useState(false);
   return (
-    <article className={`flip${flipped ? ' on' : ''}${featured ? ' featured' : ''}`}>
+    <article className={`flip${flipped ? ' on' : ''}`} data-game={g.id}>
       <div className="flip-in">
         <div className="face" aria-hidden={flipped}>
           <Scene scene={g.scene} />
@@ -93,7 +93,7 @@ export default function Landing() {
       <section className="wrap hero">
         <div className="stack" style={{ gap: 18 }}>
           <h1>سألنا ١٠٠ شخص… <em>وجاء دوركم!</em></h1>
-          <p>ثمان ألعاب بأجواء برامج المسابقات. افتح غرفة، والكل يدخل من جواله بكود من ٤ حروف، واللوحة على الشاشة الكبيرة. ميكو هو المقدّم والحكم، واللعبة تمشي لحالها.</p>
+          <p>ثمان ألعاب بأجواء برامج المسابقات. افتح غرفة، والكل يدخل من جواله بكود من ٤ حروف، واللوحة على الشاشة الكبيرة. فنجال هو المقدّم والحكم، واللعبة تمشي لحالها.</p>
           <div className="hero-actions">
             <a className="btn go lg" href="#games">افتح غرفة</a>
             <form className="join-box" onSubmit={go}>
@@ -117,15 +117,15 @@ export default function Landing() {
         <div className="how3">
           <div className="card"><h3>١. افتح غرفة</h3><p className="muted">اختر لعبة ويطلع لك كود من ٤ حروف وQR. افتح «شاشة العرض» على التلفزيون أو اللابتوب.</p></div>
           <div className="card"><h3>٢. الشلة تدخل وتضغط «جاهز»</h3><p className="muted">أول ما يكتمل العدد يبدأ العد التنازلي، وتبدأ اللعبة لحالها. محد يتحكم بالجلسة.</p></div>
-          <div className="card"><h3>٣. ميكو يدير البرنامج</h3><p className="muted">يعلن المواجهات، يعطي كل واحد وقته، يحكم الإجابات حتى لو فيها أخطاء إملائية، ويحسب النقاط.</p></div>
+          <div className="card"><h3>٣. فنجال يدير البرنامج</h3><p className="muted">يعلن المواجهات، يعطي كل واحد وقته، يحكم الإجابات حتى لو فيها أخطاء إملائية، ويحسب النقاط.</p></div>
         </div>
       </section>
 
       <section className="wrap section faq">
         <h2>أسئلة تتكرر</h2>
         <details><summary>هل نحتاج نحمّل تطبيق؟</summary><p>لا. كل شي من المتصفح، على الجوال أو اللابتوب.</p></details>
-        <details><summary>هل الأسئلة تتكرر؟</summary><p>لا. كل سؤال وكلمة تطلع للمضيف تنحفظ، وما ترجع له مرة ثانية. وإذا خلصت الأسئلة الجاهزة يكتب ميكو أسئلة جديدة.</p></details>
-        <details><summary>كتبت الإجابة بإملاء غلط، تنحسب؟</summary><p>إيه. «مويه» و«موية» و«ماء» كلها وحدة، والأخطاء البسيطة تنمشي. وإذا كانت بكلمة ثانية بنفس المعنى، ميكو يفهمها.</p></details>
+        <details><summary>هل الأسئلة تتكرر؟</summary><p>لا. كل سؤال وكلمة تطلع للمضيف تنحفظ، وما ترجع له مرة ثانية. وإذا خلصت الأسئلة الجاهزة يكتب فنجال أسئلة جديدة.</p></details>
+        <details><summary>كتبت الإجابة بإملاء غلط، تنحسب؟</summary><p>إيه. «مويه» و«موية» و«ماء» كلها وحدة، والأخطاء البسيطة تنمشي. وإذا كانت بكلمة ثانية بنفس المعنى، فنجال يفهمها.</p></details>
         <details><summary>لازم شاشة كبيرة؟</summary><p>أحسن، بس مو شرط. كل لاعب يشوف اللي يحتاجه على جواله.</p></details>
         <details><summary>كم شخص يقدر يلعب؟</summary><p>على حسب اللعبة، من ٢ لين ١٦ لاعب. المافيا من ٥ لاعبين.</p></details>
       </section>

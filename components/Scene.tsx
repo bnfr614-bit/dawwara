@@ -1,8 +1,8 @@
 'use client';
 import { useId } from 'react';
-import Miko from './Miko';
+import Fanjal from './Fanjal';
 
-// Each game card is a little TV set: spotlights, a glossy stage floor, Miko and the game's prop.
+// Each game card is a little TV set: spotlights, a glossy stage floor, Fanjal and the game's prop.
 const TINT: Record<string, [string, string]> = {
   studio: ['#1b3dd6', '#ffb000'],
   notes: ['#3b2bd0', '#ff7ab8'],
@@ -143,7 +143,7 @@ export default function Scene({ scene }: { scene: string }) {
         <Prop scene={scene} id={id} />
       </svg>
       <div style={{ position: 'absolute', insetInlineEnd: 'auto', left: 18, bottom: 4 }}>
-        <Miko size={86} mood={scene === 'crime' || scene === 'mafia' ? 'think' : scene === 'cards' ? 'wink' : 'happy'} wave={scene === 'studio'} />
+        <Fanjal size={86} mood={scene === 'crime' || scene === 'mafia' ? 'think' : scene === 'cards' ? 'wink' : 'happy'} wave={scene === 'studio'} />
       </div>
     </div>
   );

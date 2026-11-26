@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Miko from '../Miko';
+import Fanjal from '../Fanjal';
 import { Avatar, StageStrip, nameOf } from '../ui';
 import type { GP } from './types';
 
@@ -77,14 +77,14 @@ export default function Mafia({ room, view: v, you, act, mode }: GP) {
       {v.stage === 'roles' && (
         <div className="night-sky stack" style={{ alignItems: 'center' }}>
           <div className="moon" />
-          <div className="host-bubble"><Miko size={big} talking /><div className="bubble">وزعت الأدوار! شوفوا جوالاتكم بدون ما أحد يشوف. المافيا تتعرف على بعضها الليلة.</div></div>
+          <div className="host-bubble"><Fanjal size={big} talking /><div className="bubble">وزعت الأدوار! شوفوا جوالاتكم بدون ما أحد يشوف. المافيا تتعرف على بعضها الليلة.</div></div>
         </div>
       )}
 
       {v.stage === 'night' && (
         <div className="night-sky stack" style={{ alignItems: 'stretch' }}>
           <div className="moon" />
-          <div className="host-bubble" style={{ justifyContent: 'center' }}><Miko size={big} mood="think" /><div className="bubble">المدينة نايمة… كل واحد عنده دور يصحى على جواله الحين.</div></div>
+          <div className="host-bubble" style={{ justifyContent: 'center' }}><Fanjal size={big} mood="think" /><div className="bubble">المدينة نايمة… كل واحد عنده دور يصحى على جواله الحين.</div></div>
           {!board && v.amAlive && v.role === 'mafia' && (
             <>
               <b className="center">اختاروا الضحية {v.mafiaVotes && Object.keys(v.mafiaVotes).length > 0 && `(أصوات فريقك: ${Object.entries(v.mafiaVotes).map(([k, t]) => `${nameOf(room, k)}←${nameOf(room, t as string)}`).join('، ')})`}</b>
@@ -120,12 +120,12 @@ export default function Mafia({ room, view: v, you, act, mode }: GP) {
       )}
 
       {v.stage === 'morning' && (
-        <div className="host-bubble"><Miko size={big} mood={v.news?.killed ? 'sad' : 'happy'} talking /><div className="bubble grow">{news}</div></div>
+        <div className="host-bubble"><Fanjal size={big} mood={v.news?.killed ? 'sad' : 'happy'} talking /><div className="bubble grow">{news}</div></div>
       )}
 
       {v.stage === 'discuss' && (
         <>
-          <div className="host-bubble"><Miko size={big} talking /><div className="bubble grow">وقت النقاش! مين تشكّون فيه؟ دافعوا عن أنفسكم واتهموا بالدليل. الموتى ساكتين.</div></div>
+          <div className="host-bubble"><Fanjal size={big} talking /><div className="bubble grow">وقت النقاش! مين تشكّون فيه؟ دافعوا عن أنفسكم واتهموا بالدليل. الموتى ساكتين.</div></div>
           <Town v={v} room={room} you={you} />
           {!board && v.amAlive && (
             <button className="btn gold block" type="button" disabled={v.readyVote?.includes(you)} onClick={() => act({ type: 'readyVote' })}>
@@ -137,7 +137,7 @@ export default function Mafia({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'vote' && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="think" /><div className="bubble grow">صوّتوا! مين يطلع من المدينة؟ لازم أغلبية واضحة.</div></div>
+          <div className="host-bubble"><Fanjal size={big} mood="think" /><div className="bubble grow">صوّتوا! مين يطلع من المدينة؟ لازم أغلبية واضحة.</div></div>
           <Town v={v} room={room} you={you} picked={v.myVote} disable={(id) => id === you || dead}
             onPick={!board && v.amAlive ? (id) => act({ type: 'vote', target: id }) : undefined} />
           {!board && v.amAlive && <button className={`btn ghost block${v.myVote === 'skip' ? ' gold' : ''}`} type="button" onClick={() => act({ type: 'vote', target: 'skip' })}>ما أبي أطرد أحد</button>}
@@ -145,7 +145,7 @@ export default function Mafia({ room, view: v, you, act, mode }: GP) {
       )}
 
       {v.stage === 'verdict' && v.verdict && (
-        <div className="host-bubble"><Miko size={big} mood={v.verdict.out ? 'shock' : 'think'} talking />
+        <div className="host-bubble"><Fanjal size={big} mood={v.verdict.out ? 'shock' : 'think'} talking />
           <div className="bubble grow">
             {v.verdict.out ? <>المدينة طردت <b>{nameOf(room, v.verdict.out)}</b>… وكان <b style={{ color: v.verdict.role === 'mafia' ? 'var(--bad)' : 'var(--ok)' }}>{ROLES[v.verdict.role as keyof typeof ROLES]?.t}</b>!</> : 'ما فيه أغلبية. محد طلع اليوم.'}
           </div>
@@ -154,7 +154,7 @@ export default function Mafia({ room, view: v, you, act, mode }: GP) {
 
       {(v.stage === 'over' || v.winner) && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="wink" talking wave />
+          <div className="host-bubble"><Fanjal size={big} mood="wink" talking wave />
             <div className="bubble grow">{v.winner === 'town' ? 'المواطنين نظّفوا المدينة من المافيا! 🎉' : 'المافيا سيطرت على المدينة! 🎩'}</div>
           </div>
           <Town v={v} room={room} you={you} />

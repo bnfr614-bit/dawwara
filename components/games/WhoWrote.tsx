@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Miko from '../Miko';
+import Fanjal from '../Fanjal';
 import { Leaderboard, StageStrip, nameOf } from '../ui';
 import type { GP } from './types';
 
@@ -15,7 +15,7 @@ export default function WhoWrote({ room, view: v, you, act, mode }: GP) {
     return (
       <div className="stack" style={{ gap: 14 }}>
         <StageStrip v={v} board={board} left={<span className="chip gold">مين كتبها؟</span>} label={`${v.submitted.length}/${room.players.length} خلصوا`} />
-        <div className="host-bubble"><Miko size={big} talking /><div className="bubble grow">كل واحد يكتب قصتين قصار من مواقفه، بدون أسماء! وبعدها نكشفها وحدة وحدة.</div></div>
+        <div className="host-bubble"><Fanjal size={big} talking /><div className="bubble grow">كل واحد يكتب قصتين قصار من مواقفه، بدون أسماء! وبعدها نكشفها وحدة وحدة.</div></div>
         <div className="players">{room.players.map((p) => <div key={p.id} className={`player${v.submitted.includes(p.id) ? ' on' : ' off'}`}><span className="av">{v.submitted.includes(p.id) ? '✓' : p.name[0]}</span><span className="nm">{p.name}</span></div>)}</div>
         {!board && !v.mySubmitted && (
           <form className="card stack" onSubmit={(e) => { e.preventDefault(); act({ type: 'submit', stories: [s1, s2] }); }}>
@@ -38,7 +38,7 @@ export default function WhoWrote({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'vote' && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="think" /><div className="bubble grow">مين كاتبها؟ صوّتوا من جوالاتكم!</div></div>
+          <div className="host-bubble"><Fanjal size={big} mood="think" /><div className="bubble grow">مين كاتبها؟ صوّتوا من جوالاتكم!</div></div>
           {!board && (v.isAuthor ? (
             <p className="center" style={{ color: 'var(--gold)' }}>هذي قصتك! لا تفضح نفسك 🤫</p>
           ) : (
@@ -49,7 +49,7 @@ export default function WhoWrote({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'reveal' && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="wink" talking />
+          <div className="host-bubble"><Fanjal size={big} mood="wink" talking />
             <div className="bubble grow">الكاتب: <b>{nameOf(room, v.result.author)}</b>! {v.result.right.length ? `كشفوه: ${v.result.right.map((id: string) => nameOf(room, id)).join('، ')} (+2)` : 'محد كشفه! +5 للكاتب'}</div>
           </div>
           <Leaderboard rows={v.leaderboard} you={board ? null : you} />

@@ -1,6 +1,6 @@
 'use client';
 import { useEffect, useRef, useState } from 'react';
-import Miko from '../Miko';
+import Fanjal from '../Fanjal';
 import { StageStrip, nameOf, teamName } from '../ui';
 import { getSocket } from '@/lib/useRoom';
 import type { GP } from './types';
@@ -129,7 +129,7 @@ export default function Draw({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'choose' && (
         <>
-          <div className="host-bubble"><Miko size={big} talking wave /><div className="bubble grow">دور {teamName(v.turn)}! الكابتن {nameOf(room, v.captain)} يختار الرسام، وإذا ما اختار أختار أنا.</div></div>
+          <div className="host-bubble"><Fanjal size={big} talking wave /><div className="bubble grow">دور {teamName(v.turn)}! الكابتن {nameOf(room, v.captain)} يختار الرسام، وإذا ما اختار أختار أنا.</div></div>
           {v.canChoose && !board && <div className="pick">{team.map((p) => <button key={p.id} type="button" onClick={() => act({ type: 'choose', drawer: p.id })}>{p.name}{p.id === you ? ' (أنا)' : ''}</button>)}</div>}
         </>
       )}
@@ -163,7 +163,7 @@ export default function Draw({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'result' && (
         <>
-          <div className="host-bubble"><Miko size={big} mood={v.result.team ? 'wink' : 'sad'} talking />
+          <div className="host-bubble"><Fanjal size={big} mood={v.result.team ? 'wink' : 'sad'} talking />
             <div className="bubble grow">الكلمة كانت <b>{v.result.word}</b>. {v.result.team ? `نقطة لـ${teamName(v.result.team)}${v.result.how === 'steal' ? ' بالسرقة!' : '!'}` : 'محد خمنها.'}</div>
           </div>
           <Canvas strokes={v.strokes} canDraw={false} resetKey={resetKey} />

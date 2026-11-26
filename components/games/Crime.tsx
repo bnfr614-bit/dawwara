@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Miko from '../Miko';
+import Fanjal from '../Fanjal';
 import { Leaderboard, StageStrip, nameOf } from '../ui';
 import type { GP } from './types';
 
@@ -61,7 +61,7 @@ export default function Crime({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'killerPick' && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="think" /><div className="bubble grow">الكل يغمض… القاتل يختار سلاحه ودليله من أوراقه.</div></div>
+          <div className="host-bubble"><Fanjal size={big} mood="think" /><div className="bubble grow">الكل يغمض… القاتل يختار سلاحه ودليله من أوراقه.</div></div>
           {!board && role === 'killer' && (
             <div className="stack">
               <Hand h={v.hands[you!]} pick sel={sel} onPick={(k, val) => setSel((s) => ({ ...s, [k]: val }))} />
@@ -81,7 +81,7 @@ export default function Crime({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'investigate' && (
         <>
-          <div className="host-bubble"><Miko size={big} talking /><div className="bubble grow">ناقشوا! المحقق الرئيسي {nameOf(room, v.lead)} يسجّل الاتهام: الشخص + السلاح + الدليل من أوراقه.</div></div>
+          <div className="host-bubble"><Fanjal size={big} talking /><div className="bubble grow">ناقشوا! المحقق الرئيسي {nameOf(room, v.lead)} يسجّل الاتهام: الشخص + السلاح + الدليل من أوراقه.</div></div>
           {!board && amLead && role !== 'killer' && (
             <div className="card stack">
               <b>الاتهام النهائي</b>
@@ -95,14 +95,14 @@ export default function Crime({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'hunt' && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="shock" talking /><div className="bubble grow">الاتهام صحيح! بس القاتل عنده فرصة أخيرة: لو كشف الشاهد يفوز هو.</div></div>
+          <div className="host-bubble"><Fanjal size={big} mood="shock" talking /><div className="bubble grow">الاتهام صحيح! بس القاتل عنده فرصة أخيرة: لو كشف الشاهد يفوز هو.</div></div>
           {!board && role === 'killer' && <div className="pick">{room.players.filter((p) => p.id !== you).map((p) => <button key={p.id} type="button" onClick={() => act({ type: 'hunt', target: p.id })}>{p.name}</button>)}</div>}
         </>
       )}
 
       {v.stage === 'over' && v.truth && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="wink" talking />
+          <div className="host-bubble"><Fanjal size={big} mood="wink" talking />
             <div className="bubble grow">
               {v.detectivesWin ? 'المحققين فازوا! 🕵️' : 'القاتل فاز! 🔪'} القاتل {nameOf(room, v.truth.killer)} بـ«{v.truth.chosen?.means}» ودليل «{v.truth.chosen?.clue}»
               {v.truth.witness ? `، والشاهد ${nameOf(room, v.truth.witness)}` : ''}.

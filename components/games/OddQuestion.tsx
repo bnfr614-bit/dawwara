@@ -1,6 +1,6 @@
 'use client';
 import { useState } from 'react';
-import Miko from '../Miko';
+import Fanjal from '../Fanjal';
 import { Leaderboard, StageStrip, nameOf } from '../ui';
 import type { GP } from './types';
 
@@ -16,7 +16,7 @@ export default function OddQuestion({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'answer' && (
         <>
-          <div className="host-bubble"><Miko size={big} talking /><div className="bubble grow">كل واحد وصله سؤال على جواله… إلا واحد وصله سؤال مختلف. جاوبوا!</div></div>
+          <div className="host-bubble"><Fanjal size={big} talking /><div className="bubble grow">كل واحد وصله سؤال على جواله… إلا واحد وصله سؤال مختلف. جاوبوا!</div></div>
           {!board && (v.myAnswer ? <p className="center muted">إجابتك: «{v.myAnswer}». ننتظر الباقين…</p> : (
             <form className="card stack" onSubmit={(e) => { e.preventDefault(); act({ type: 'answer', text }); }}>
               <div className="label">سؤالك (لا توريه أحد)</div>
@@ -33,7 +33,7 @@ export default function OddQuestion({ room, view: v, you, act, mode }: GP) {
       {v.stage !== 'answer' && v.mainQuestion && (
         <>
           <div className="card center"><div className="label">السؤال الأصلي</div><div className="q-banner" style={{ fontSize: board ? '3rem' : '1.7rem' }}>{v.mainQuestion}</div></div>
-          {v.stage === 'vote' && <div className="host-bubble"><Miko size={big} mood="think" /><div className="bubble grow">أي إجابة ما تركب على السؤال؟</div></div>}
+          {v.stage === 'vote' && <div className="host-bubble"><Fanjal size={big} mood="think" /><div className="bubble grow">أي إجابة ما تركب على السؤال؟</div></div>}
           <div className="pick" style={board ? { gridTemplateColumns: 'repeat(auto-fill, minmax(260px, 1fr))' } : undefined}>
             {v.list.map((x: any) => (
               <button key={x.id} type="button" disabled={board || x.mine || v.stage !== 'vote'}
@@ -51,13 +51,13 @@ export default function OddQuestion({ room, view: v, you, act, mode }: GP) {
 
       {v.stage === 'reveal' && v.result && !v.result.skipped && (
         <>
-          <div className="host-bubble"><Miko size={big} mood="wink" talking />
+          <div className="host-bubble"><Fanjal size={big} mood="wink" talking />
             <div className="bubble grow">الشاذ <b>{nameOf(room, v.result.odd)}</b>، وسؤاله كان: «{v.result.oddQuestion}». {v.result.caught ? 'وانكشف!' : 'ونجا! +2'}</div>
           </div>
           <Leaderboard rows={v.leaderboard} you={board ? null : you} />
         </>
       )}
-      {v.stage === 'reveal' && v.result?.skipped && <div className="host-bubble"><Miko size={big} mood="sad" /><div className="bubble grow">ما وصلت إجابات كافية. نروح للجولة الجاية.</div></div>}
+      {v.stage === 'reveal' && v.result?.skipped && <div className="host-bubble"><Fanjal size={big} mood="sad" /><div className="bubble grow">ما وصلت إجابات كافية. نروح للجولة الجاية.</div></div>}
     </div>
   );
 }

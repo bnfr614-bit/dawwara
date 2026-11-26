@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react';
 import QRCode from 'qrcode';
 import type { RoomInfo } from '@/lib/useRoom';
 import { gameById } from '@/lib/catalog';
-import Miko from './Miko';
+import Fanjal from './Fanjal';
 import Icon from './Icon';
 import { Avatar, TimerRing } from './ui';
 
@@ -58,7 +58,7 @@ export default function Lobby({ room, you, act, onError, board = false }: {
       <div className="card lobby-top">
         <div className="stack" style={{ gap: 14 }}>
           <div className="host-bubble">
-            <Miko size={board ? 130 : 80} talking={!!deadline} wave />
+            <Fanjal size={board ? 130 : 80} talking={!!deadline} wave />
             <div className="bubble grow">حياكم في «{info.name}»! {board ? 'امسحوا الكود بجوالاتكم أو ادخلوا العنوان.' : 'شارك الكود مع ربعك.'}</div>
           </div>
           <div className="row" style={{ justifyContent: 'space-between', alignItems: 'end' }}>
